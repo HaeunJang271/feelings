@@ -68,11 +68,12 @@ export function ReportCard({ user }: ReportCardProps) {
         type="button"
         className="btn-buy"
         onClick={() => {
-          const text = `🎭 감정 거래소 리포트\n총 수익률 ${report.totalYield >= 0 ? '+' : ''}${report.totalYield.toFixed(0)}%\n거래 ${report.tradeCount}회 · 승률 ${report.winRate.toFixed(0)}%\n투자 스타일: ${report.style}\n#감정거래소`
+          const text = `🎭 감정 거래소 리포트\n총 수익률 ${report.totalYield >= 0 ? '+' : ''}${report.totalYield.toFixed(0)}%\n거래 ${report.tradeCount}회 · 승률 ${report.winRate.toFixed(0)}%\n투자 스타일: ${report.style}\n#감정거래소\n\n🔗 https://feelings-delta.vercel.app`
           if (typeof navigator.share === 'function') {
             navigator.share({
               title: '감정 거래소 리포트',
               text,
+              url: 'https://feelings-delta.vercel.app',
             }).catch(() => {
               navigator.clipboard.writeText(text).then(() => alert('복사됐어요! 인스타 스토리나 게시물에 붙여넣기 하세요.'))
             })
