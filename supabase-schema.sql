@@ -1,4 +1,5 @@
--- 감정 거래소 리더보드 테이블 (Supabase SQL Editor에서 실행)
+-- 감정 거래소 리더보드 테이블 (Supabase 대시보드 > SQL Editor에서 전체 실행)
+-- 실행 후 Table Editor에 "leaderboard" 테이블이 보여야 합니다. 안 보이면 이 스크립트를 다시 실행하세요.
 -- 1. Table 생성
 create table if not exists public.leaderboard (
   user_id text primary key,

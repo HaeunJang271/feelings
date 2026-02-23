@@ -6,16 +6,16 @@ const TABLE = 'leaderboard'
 function rowToEntry(row: {
   user_id: string
   nickname: string
-  yield_percent: number
-  total_coins: number
+  yield_percent: number | string
+  total_coins: number | string
   note: string | null
   updated_at: string
 }): LeaderboardEntry {
   return {
     userId: row.user_id,
     nickname: row.nickname,
-    yieldPercent: row.yield_percent,
-    totalCoins: row.total_coins,
+    yieldPercent: Number(row.yield_percent),
+    totalCoins: Number(row.total_coins),
     note: row.note ?? undefined,
     updatedAt: new Date(row.updated_at).getTime(),
   }
@@ -30,13 +30,13 @@ export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
     .limit(100)
   if (error) {
     console.warn('Leaderboard fetch failed:', error.message)
-    return []
+    throw new Error(error.message)
   }
   return (data ?? []).map(rowToEntry)
 }
 
-export async function upsertLeaderboardEntry(entry: Omit<LeaderboardEntry, 'updatedAt'>): Promise<void> {
-  if (!supabase) return
+export async function upsertLeaderboardEntry(entry: Omit<LeaderboardEntry, 'updatedAt'>): Promise<{ ok: boolean; error?: string }> {
+  if (!supabase) return { ok: false }
   const { error } = await supabase.from(TABLE).upsert(
     {
       user_id: entry.userId,
@@ -48,7 +48,11 @@ export async function upsertLeaderboardEntry(entry: Omit<LeaderboardEntry, 'upda
     },
     { onConflict: 'user_id' }
   )
-  if (error) console.warn('Leaderboard upsert failed:', error.message)
+  if (error) {
+    console.warn('Leaderboard upsert failed:', error.message)
+    return { ok: false, error: error.message }
+  }
+  return { ok: true }
 }
 
 export { isSupabaseConfigured }

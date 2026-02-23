@@ -23,9 +23,16 @@ function getYieldAndCoins(user: UserState, quotes: EmotionQuote[]): { yieldPerce
 export function Leaderboard({ user, quotes }: LeaderboardProps) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>(() => loadLeaderboard())
   const [loading, setLoading] = useState(isSupabaseConfigured())
+  const [apiError, setApiError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
   const userId = `user-${user.joinedAt}`
 
   const { yieldPercent, totalCoins } = getYieldAndCoins(user, quotes)
+
+  const refreshList = () => {
+    if (!isSupabaseConfigured()) return
+    setRefreshKey((k) => k + 1)
+  }
 
   useEffect(() => {
     const entry = {
@@ -38,16 +45,19 @@ export function Leaderboard({ user, quotes }: LeaderboardProps) {
 
     if (isSupabaseConfigured()) {
       setLoading(true)
-      Promise.all([
-        fetchLeaderboard(),
-        upsertLeaderboardEntry(entry),
-      ])
-        .then(([list]) => {
+      setApiError(null)
+      upsertLeaderboardEntry(entry)
+        .then(({ ok }) => {
+          if (!ok) setApiError('서버 반영 실패')
+          return fetchLeaderboard()
+        })
+        .then((list) => {
           const merged = list.filter((e) => e.userId !== userId)
           const myEntry: LeaderboardEntry = { ...entry, updatedAt: Date.now() }
           setEntries([...merged, myEntry].sort((a, b) => b.yieldPercent - a.yieldPercent))
         })
         .catch(() => {
+          setApiError('리더보드 연결 실패')
           const current = loadLeaderboard()
           const updated = updateLeaderboardEntry(current, userId, entry)
           setEntries(updated)
@@ -58,14 +68,22 @@ export function Leaderboard({ user, quotes }: LeaderboardProps) {
       const updated = updateLeaderboardEntry(current, userId, entry)
       setEntries(updated)
     }
-  }, [userId, user.nickname, user.history.length, yieldPercent, totalCoins])
+  }, [userId, user.nickname, user.history.length, yieldPercent, totalCoins, refreshKey])
 
   const sorted = [...entries].sort((a, b) => b.yieldPercent - a.yieldPercent)
 
   return (
     <div className="card">
-      <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem' }}>🏆 오늘의 감정 투자 고수</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <h3 style={{ margin: 0, fontSize: '1rem' }}>🏆 오늘의 감정 투자 고수</h3>
+        {isSupabaseConfigured() && (
+          <button type="button" onClick={refreshList} disabled={loading} style={{ fontSize: '0.8rem', padding: '0.35rem 0.6rem', background: 'var(--bg-glass)', color: 'var(--text-muted)' }}>
+            다시 불러오기
+          </button>
+        )}
+      </div>
       {loading && <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>불러오는 중...</p>}
+      {apiError && <p style={{ color: 'var(--down-bright)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>{apiError}. .env와 supabase-schema.sql 확인해 주세요.</p>}
       <ol className="leaderboard">
         {sorted.map((e, idx) => (
           <li key={e.userId} style={{ opacity: e.userId === userId ? 1 : 0.9 }}>
