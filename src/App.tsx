@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEmotionMarket } from './hooks/useEmotionMarket'
 import { EMOTIONS } from './data/emotions'
@@ -7,12 +7,32 @@ import { TradeModal } from './components/TradeModal'
 import { Portfolio } from './components/Portfolio'
 import { NewsFeed } from './components/NewsFeed'
 import { Leaderboard } from './components/Leaderboard'
+import { GachaPanel } from './components/GachaPanel'
+import { Lotto } from './components/Lotto'
+import { Attendance } from './components/Attendance'
+import { Achievements } from './components/Achievements'
+import { ReportCard } from './components/ReportCard'
+import { Heatmap } from './components/Heatmap'
+import { ACHIEVEMENTS } from './data/achievements'
 
-type Tab = 'chart' | 'portfolio' | 'news' | 'leaderboard'
+type Tab = 'chart' | 'portfolio' | 'news' | 'leaderboard' | 'gacha' | 'lotto' | 'rewards' | 'report' | 'heatmap'
 
 function App() {
-  const { quotes, user, initUser, buy, sell, getEmotionDef } = useEmotionMarket()
+  const {
+    quotes,
+    user,
+    initUser,
+    buy,
+    sell,
+    getEmotionDef,
+    gachaPull,
+    attendanceCheck,
+    unlockAchievement,
+    buyLottoTicket,
+    drawLotto,
+  } = useEmotionMarket()
   const [tab, setTab] = useState<Tab>('chart')
+  const [headerOpen, setHeaderOpen] = useState(false)
   const [modal, setModal] = useState<{
     emotionId: string
     type: 'buy' | 'sell'
@@ -33,6 +53,7 @@ function App() {
       if (!modal) return false
       const ok = modal.type === 'buy' ? buy(modal.emotionId, amount) : sell(modal.emotionId, amount)
       if (ok) {
+        if (user && user.history.length === 0) unlockAchievement('first_trade')
         const name = getEmotionDef(modal.emotionId)?.nameKr
         setToast(modal.type === 'buy' ? `💥 ${name}에 ${amount.toLocaleString()}코인 투자 완료!` : `📤 ${name} ${amount.toLocaleString()}코인 매도 완료!`)
         setTimeout(() => setToast(null), 2500)
@@ -41,7 +62,7 @@ function App() {
       }
       return false
     },
-    [modal, buy, sell, getEmotionDef]
+    [modal, buy, sell, getEmotionDef, user, unlockAchievement]
   )
 
   const handleOnboardingSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -50,6 +71,12 @@ function App() {
     const name = (form.elements.namedItem('nickname') as HTMLInputElement)?.value?.trim()
     initUser(name || '익명의 투자자')
   }
+
+  useEffect(() => {
+    if (!user) return
+    if (user.coins === 0) unlockAchievement('bankruptcy')
+    if (user.coins >= 10000) unlockAchievement('coin_10k')
+  }, [user?.coins, unlockAchievement])
 
   if (!user) {
     return (
@@ -81,28 +108,48 @@ function App() {
 
   return (
     <>
-      <header className="app-header">
-        <div className="app-title">
-          <span className="live">🔴 LIVE</span>
-          <span>감정 거래소</span>
-        </div>
-        <div className="user-bar">
-          <span className="coin-badge">💰 {Math.floor(user.coins).toLocaleString()} 코인</span>
-          <nav className="nav-tabs">
-            {(['chart', 'portfolio', 'news', 'leaderboard'] as const).map((t) => (
+      <header className={`app-header ${headerOpen ? 'is-open' : ''}`}>
+        <button
+          type="button"
+          className="app-header-toggle"
+          onClick={() => setHeaderOpen((o) => !o)}
+          aria-expanded={headerOpen}
+          aria-label={headerOpen ? '메뉴 접기' : '메뉴 펼치기'}
+        >
+          <div className="app-title">
+            <span className="live">🔴 LIVE</span>
+            <span>감정 거래소</span>
+          </div>
+          <span className="coin-badge">💰 {Math.floor(user.coins).toLocaleString()}</span>
+          <span className="header-chevron">{headerOpen ? '▲' : '▼'}</span>
+        </button>
+        <div className="app-header-content">
+          <div className="app-header-content-inner">
+          <nav className="nav-tabs" style={{ flexWrap: 'wrap', gap: '0.25rem', maxWidth: '100%' }}>
+            {(
+              [
+                ['chart', '차트'],
+                ['portfolio', '포트폴리오'],
+                ['news', '뉴스'],
+                ['leaderboard', '리더보드'],
+                ['gacha', '가챠'],
+                ['lotto', '복권'],
+                ['rewards', '리워드'],
+                ['report', '리포트'],
+                ['heatmap', '히트맵'],
+              ] as [Tab, string][]
+            ).map(([t, label]) => (
               <button
                 key={t}
                 type="button"
                 className={tab === t ? 'active' : ''}
                 onClick={() => setTab(t)}
               >
-                {t === 'chart' && '차트'}
-                {t === 'portfolio' && '포트폴리오'}
-                {t === 'news' && '뉴스'}
-                {t === 'leaderboard' && '리더보드'}
+                {label}
               </button>
             ))}
           </nav>
+          </div>
         </div>
       </header>
 
@@ -133,7 +180,36 @@ function App() {
 
       {tab === 'portfolio' && <Portfolio user={user} quotes={quotes} />}
       {tab === 'news' && <NewsFeed quotes={quotes} />}
-      {tab === 'leaderboard' && <Leaderboard />}
+      {tab === 'leaderboard' && <Leaderboard user={user} quotes={quotes} />}
+      {tab === 'gacha' && (
+        <GachaPanel
+          coins={user.coins}
+          gachaTickets={user.gachaTickets ?? 0}
+          gachaPity={user.gachaPity ?? 0}
+          onPull={(c) => gachaPull(c) ?? null}
+          onLegend={() => unlockAchievement('legend_gacha')}
+        />
+      )}
+      {tab === 'lotto' && (
+        <Lotto
+          coins={user.coins}
+          tickets={user.lottoTickets ?? []}
+          onBuy={buyLottoTicket}
+          onDraw={drawLotto}
+        />
+      )}
+      {tab === 'rewards' && (
+        <>
+          <Attendance
+            streak={user.attendance?.streak ?? 0}
+            checkedDates={user.attendance?.checkedDates}
+            onCheck={attendanceCheck}
+          />
+          <Achievements user={user} totalAchievements={ACHIEVEMENTS.length} />
+        </>
+      )}
+      {tab === 'report' && <ReportCard user={user} />}
+      {tab === 'heatmap' && <Heatmap quotes={quotes} />}
 
       {def && quote && modal && (
         <TradeModal

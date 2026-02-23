@@ -24,11 +24,20 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: var(--bg-dark);
   color: var(--text);
   background-image:
@@ -39,7 +48,11 @@ body {
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 0 1rem 2rem;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(2rem, env(safe-area-inset-bottom));
 }
 
 button {
@@ -74,17 +87,94 @@ input:focus {
 }
 
 .app-header {
-  position: sticky;
-  top: 0;
   z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 0 1rem;
-  background: rgba(11, 14, 20, 0.9);
+  background: rgba(11, 14, 20, 0.95);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   margin-bottom: 1rem;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.app-header-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  min-height: 44px;
+}
+.app-header-toggle .app-title {
+  margin: 0;
+}
+.app-header-toggle .coin-badge {
+  margin-left: auto;
+}
+.header-chevron {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-left: 0.25rem;
+}
+.app-header-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+.app-header:not(.is-open) .app-header-content {
+  overflow: hidden;
+}
+.app-header.is-open .app-header-content {
+  grid-template-rows: 1fr;
+}
+.app-header-content > * {
+  overflow: hidden;
+  min-height: 0;
+}
+.app-header-content-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+.app-header-content .nav-tabs {
+  padding-top: 0.25rem;
+  padding-bottom: 0.75rem;
+}
+.app-header:not(.is-open) .app-header-content .nav-tabs {
+  padding-top: 0;
+  padding-bottom: 0;
+  margin: 0;
+}
+.nav-tabs {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+.nav-tabs button {
+  padding: 0.5rem 0.9rem;
+  min-height: 44px;
+  min-width: 44px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.nav-tabs button.active {
+  background: var(--bg-glass);
+  color: var(--text);
+  border-radius: var(--radius-sm);
 }
 
 .app-title {
@@ -109,36 +199,17 @@ input:focus {
   50% { opacity: 0.7; }
 }
 
-.user-bar {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
 .coin-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.4rem 0.75rem;
+  padding: 0.5rem 0.75rem;
+  min-height: 44px;
   background: var(--bg-glass);
   border: 1px solid var(--border);
   border-radius: 999px;
   font-weight: 700;
   color: var(--up-bright);
-}
-.nav-tabs {
-  display: flex;
-  gap: 0.25rem;
-}
-.nav-tabs button {
-  padding: 0.5rem 0.9rem;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-.nav-tabs button.active {
-  background: var(--bg-glass);
-  color: var(--text);
-  border-radius: var(--radius-sm);
 }
 
 .card {
@@ -327,4 +398,148 @@ input:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.lotto-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 0.35rem;
+  max-width: 320px;
+}
+.lotto-num {
+  aspect-ratio: 1;
+  min-width: 0;
+  min-height: 28px;
+  border-radius: 6px;
+  background: var(--bg-glass);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.lotto-num.selected {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ========== 모바일 반응형 ========== */
+@media (max-width: 768px) {
+  #root {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-bottom: max(4rem, calc(env(safe-area-inset-bottom) + 3rem));
+  }
+  .card {
+    margin-bottom: 0.75rem;
+    padding: 1rem;
+  }
+  .card:last-child {
+    margin-bottom: 1.5rem;
+  }
+  .app-header {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+  .app-title {
+    font-size: 1.15rem;
+  }
+  .app-title .live {
+    font-size: 0.65rem;
+  }
+  .emotion-row {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-rows: auto auto;
+    gap: 0.5rem;
+    padding: 0.6rem 0;
+  }
+  .emotion-row .emoji-name {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 72px;
+    font-size: 0.95rem;
+  }
+  .emotion-row .change {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: 0.9rem;
+  }
+  .emotion-row .label {
+    grid-column: 3;
+    grid-row: 1;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+  }
+  .emotion-row .mini-chart {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    height: 28px;
+  }
+  .emotion-row > div:last-child {
+    grid-column: 4;
+    grid-row: 1;
+    display: flex;
+    gap: 0.35rem;
+  }
+  .btn-buy,
+  .btn-sell {
+    min-height: 44px;
+    min-width: 56px;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.8rem;
+  }
+  .modal-overlay {
+    padding: 0.75rem;
+    align-items: flex-end;
+  }
+  .modal {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 1.25rem;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+  .modal h3 {
+    font-size: 1rem;
+  }
+  .modal-actions button {
+    min-height: 48px;
+  }
+  .onboarding {
+    margin: 1.5rem auto;
+    padding: 0 1rem;
+  }
+  .onboarding h1 {
+    font-size: 1.5rem;
+  }
+  .onboarding input,
+  .onboarding button {
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 480px) {
+  .emotion-row .emoji-name {
+    min-width: 64px;
+    font-size: 0.9rem;
+  }
+  .coin-badge {
+    font-size: 0.9rem;
+  }
+  .nav-tabs button {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.85rem;
+  }
+  .lotto-grid {
+    grid-template-columns: repeat(5, 1fr);
+    max-width: none;
+    gap: 0.4rem;
+  }
+  .lotto-num {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
 }
